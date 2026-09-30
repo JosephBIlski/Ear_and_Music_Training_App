@@ -235,3 +235,34 @@ ul.tips li { margin-bottom: 0.3rem; }
   .pad-btn { min-height: 54px; font-size: 0.95rem; }
   h1 { font-size: 1.4rem; }
 }
+
+/* --- Mobile / installed-app refinements ------------------------------------- */
+.btn, .pad-btn, .chip, .slot, .piano .white, .piano .black { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.nav { padding-top: calc(0.6rem + env(safe-area-inset-top)); }
+.page { padding-left: calc(1rem + env(safe-area-inset-left)); padding-right: calc(1rem + env(safe-area-inset-right)); padding-bottom: calc(3rem + env(safe-area-inset-bottom)); }
+
+@media (max-width: 600px) {
+  .nav { gap: 0.15rem; padding-left: 0.5rem; padding-right: 0.5rem; }
+  .nav .brand { font-size: 1rem; }
+  .nav a.link { padding: 0.3rem 0.45rem; font-size: 0.85rem; }
+  .row.between > .row { width: 100%; }
+  .question-header { gap: 0.3rem; }
+  .prompt { font-size: 1.05rem; }
+  .btn.large { width: 100%; }
+  .grid { grid-template-columns: 1fr; }
+  .summary-grid { grid-template-columns: repeat(2, 1fr); }
+  .heat { grid-template-columns: repeat(4, 1fr); }
+  .big-number { font-size: 1.8rem; }
+  .level-row { flex-wrap: wrap; }
+  .level-row .body { flex-basis: calc(100% - 44px); }
+  .level-row .btn, .level-row .badge { margin-left: 44px; }
+  .meter { height: 76px; }
+}
+
+.sync-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-dim); }
+.sync-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); }
+.sync-status .dot.ok { background: var(--good); }
+.sync-status .dot.busy { background: var(--warn); animation: pulse 1s infinite; }
+.sync-status .dot.err { background: var(--bad); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.install-banner { display: flex; gap: 0.7rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }

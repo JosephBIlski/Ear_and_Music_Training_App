@@ -4,6 +4,7 @@ import { useLabels } from '../hooks/useLabels';
 import { dueItems, weakestItems, recentAccuracy } from '../srs/scheduler';
 import { computeStreak, currentLevelIndex, minutesToday, todayKey, useStore } from '../store/useStore';
 import { estimateMinutes } from '../store/daily';
+import { formatSyncTime, useSync } from '../sync/engine';
 
 export function Dashboard() {
   const progress = useStore((s) => s.progress);
@@ -11,6 +12,7 @@ export function Dashboard() {
   const srs = useStore((s) => s.srs);
   const daily = useStore((s) => s.daily);
   const labels = useLabels();
+  const sync = useSync();
 
   const streak = computeStreak(history);
   const minutes = minutesToday(history);
@@ -25,6 +27,18 @@ export function Dashboard() {
         <div>
           <h1>Train your ear, 15 minutes a day</h1>
           <p className="muted">Movable-do relative pitch → singing → transcription. Pick up where you left off, or run today's session.</p>
+        </div>
+        <div className="sync-status">
+          <span className={`dot ${sync.status === 'ok' ? 'ok' : sync.status === 'syncing' ? 'busy' : sync.status === 'error' ? 'err' : ''}`} />
+          {sync.status === 'off' ? (
+            <Link to="/settings">Set up sync across devices</Link>
+          ) : sync.status === 'error' ? (
+            <Link to="/settings" style={{ color: 'var(--bad)' }}>
+              Sync error – check settings
+            </Link>
+          ) : (
+            <span>{sync.status === 'syncing' ? 'Syncing…' : `Synced ${formatSyncTime(sync.config.lastSyncAt)}`}</span>
+          )}
         </div>
       </div>
 

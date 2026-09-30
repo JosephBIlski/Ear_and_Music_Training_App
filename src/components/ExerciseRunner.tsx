@@ -451,7 +451,7 @@ export function ExerciseRunner({ moduleId, levelId, config, questionCount, mode,
             </label>
           )}
           {onQuit && (
-            <button className="btn small ghost" onClick={() => finish(stats, index)}>
+            <button className="btn small ghost" onClick={() => finish(stats, index + (phase === 'feedback' ? 1 : 0))}>
               End
             </button>
           )}
@@ -478,7 +478,7 @@ export function ExerciseRunner({ moduleId, levelId, config, questionCount, mode,
         {showPiano ? (
           <Piano
             low={question.input.kind === 'pitch' ? Math.floor(question.input.low / 12) * 12 : Math.floor((question.tonic - 12) / 12) * 12}
-            high={question.input.kind === 'pitch' ? Math.ceil(question.input.high / 12) * 12 : Math.floor((question.tonic - 12) / 12) * 12 + 36}
+            high={question.input.kind === 'pitch' ? Math.ceil(question.input.high / 12) * 12 : Math.floor((question.tonic - 12) / 12) * 12 + 24}
             tonic={question.input.kind === 'degree' ? question.tonic : undefined}
             mode={question.mode}
             showDegreeLabels={question.input.kind === 'degree'}

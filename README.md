@@ -26,6 +26,14 @@ Every degree, interval, chord quality, chord function and sung degree is an item
 
 The Daily session page builds a ~15-minute plan (configurable) from your current level in each module: functional degrees every day, a review block when enough items are due, two rotating recognition modules, one singing exercise and transcription. Blocks run back to back.
 
+## Mobile app & sync
+
+- The build is an installable **PWA** (offline, full screen, home-screen icon). Open the deployed site on a phone and *Add to Home Screen*.
+- **Capacitor** config is included for native iOS/Android builds (`npm run cap:android` / `npm run cap:ios` after `npx cap add <platform>`).
+- **Sync across devices**: Settings → Sync. Progress, spaced-repetition history and settings are merged across browser and phone through a private GitHub Gist (no server) or a tiny Cloudflare Worker (`sync-server/`).
+
+See [docs/MOBILE.md](docs/MOBILE.md) for step-by-step instructions.
+
 ## Running
 
 ```bash
@@ -60,4 +68,7 @@ src/singing      singing exercise configs
 src/components   runners, piano, pads, pitch meter
 src/pages        dashboard, module, level, practice, daily, progress, settings, guide
 src/store        persisted state and daily planner
+src/sync         cross-device sync: merge rules, Gist / endpoint providers, auto-sync engine
+sync-server      optional Cloudflare Worker sync back-end
+docs             MOBILE.md – PWA install, Capacitor builds, sync setup
 ```

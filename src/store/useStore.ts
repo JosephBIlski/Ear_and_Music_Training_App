@@ -74,8 +74,12 @@ interface State {
   daily: DailyPlan | null;
   /** timestamp of first use */
   createdAt: number;
+  /** last time settings changed (used to resolve sync conflicts) */
+  settingsUpdatedAt: number;
 
   updateSettings: (patch: Partial<Settings>) => void;
+  /** replace synced data wholesale (after a merge) */
+  applySynced: (data: SyncedData) => void;
   recordAnswers: (results: { id: string; correct: boolean }[], responseMs: number) => void;
   recordConfusion: (kind: string, expected: string, given: string) => void;
   recordLevelResult: (moduleId: string, levelId: string, accuracy: number, passAccuracy: number) => void;
@@ -84,6 +88,16 @@ interface State {
   completeDailyBlock: (index: number, correct: number) => void;
   resetProgress: () => void;
   importState: (json: string) => boolean;
+}
+
+export interface SyncedData {
+  settings: Settings;
+  settingsUpdatedAt: number;
+  srs: Record<string, SrsItem>;
+  progress: Record<string, Record<string, LevelResult>>;
+  history: SessionLog[];
+  confusions: Record<string, Record<string, number>>;
+  daily: DailyPlan | null;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -113,8 +127,20 @@ export const useStore = create<State>()(
       confusions: {},
       daily: null,
       createdAt: Date.now(),
+      settingsUpdatedAt: 0,
 
-      updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
+      updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch }, settingsUpdatedAt: Date.now() })),
+
+      applySynced: (data) =>
+        set({
+          settings: { ...DEFAULT_SETTINGS, ...data.settings },
+          settingsUpdatedAt: data.settingsUpdatedAt,
+          srs: data.srs,
+          progress: data.progress,
+          history: data.history,
+          confusions: data.confusions,
+          daily: data.daily,
+        }),
 
       recordAnswers: (results, responseMs) =>
         set((s) => {
@@ -177,6 +203,7 @@ export const useStore = create<State>()(
             history: data.history ?? [],
             confusions: data.confusions ?? {},
             daily: data.daily ?? null,
+            settingsUpdatedAt: data.settingsUpdatedAt ?? Date.now(),
           });
           return true;
         } catch {
@@ -188,9 +215,13 @@ export const useStore = create<State>()(
   ),
 );
 
-export function exportState(): string {
+export function getSyncedData(): SyncedData {
   const s = useStore.getState();
-  return JSON.stringify({ settings: s.settings, srs: s.srs, progress: s.progress, history: s.history, confusions: s.confusions, daily: s.daily, exportedAt: new Date().toISOString() }, null, 2);
+  return { settings: s.settings, settingsUpdatedAt: s.settingsUpdatedAt, srs: s.srs, progress: s.progress, history: s.history, confusions: s.confusions, daily: s.daily };
+}
+
+export function exportState(): string {
+  return JSON.stringify({ ...getSyncedData(), exportedAt: new Date().toISOString() }, null, 2);
 }
 
 // --- derived helpers ----------------------------------------------------------

@@ -4,6 +4,7 @@ import { mic, type PitchFrame } from '../audio/mic';
 import { midiInput } from '../audio/midi';
 import { exportState, useStore, DEFAULT_SETTINGS } from '../store/useStore';
 import { midiToName } from '../theory/notes';
+import { InstallSettings, SyncSettings } from '../components/SyncSettings';
 
 export function SettingsPage() {
   const settings = useStore((s) => s.settings);
@@ -161,6 +162,10 @@ export function SettingsPage() {
           <input type="checkbox" checked={settings.freeNavigation} onChange={(e) => update({ freeNavigation: e.target.checked })} /> Free navigation (start any level without passing the previous one)
         </label>
       </div>
+
+      <SyncSettings />
+
+      <InstallSettings />
 
       <div className="card stack">
         <h2>Data</h2>
