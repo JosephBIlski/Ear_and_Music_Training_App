@@ -45,7 +45,9 @@ export function ChordReference({ tonic: initialTonic = 60, mode: initialMode = '
   const [qualityRoot, setQualityRoot] = useState<number | null>(null); // degree relative to do, null = do
 
   const keyNames = mode === 'major' ? KEY_NAMES_MAJOR : KEY_NAMES_MINOR;
-  const useFlats = keyNames[tonicPc].includes('b') || (tonicPc === 5 && mode === 'major');
+  // Spell with flats when the key signature has flats (F, Bb, Eb, Ab, Db, Gb major and their relative minors).
+  const FLAT_MAJORS = [5, 10, 3, 8, 1, 6];
+  const useFlats = FLAT_MAJORS.includes(mode === 'major' ? tonicPc : (tonicPc + 3) % 12);
   const noteNames = useFlats ? NOTE_NAMES_FLAT : NOTE_NAMES_SHARP;
   const noteName = (degree: number) => noteNames[(tonicPc + degree) % 12];
   const tonicMidi = 60 + tonicPc - (tonicPc > 6 ? 12 : 0);
