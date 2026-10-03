@@ -49,3 +49,29 @@ describe('generators', () => {
     expect(q2.hasContext).toBe(false);
   });
 });
+
+describe('key context override', () => {
+  it('replaces the cadence with a single do and labels it', () => {
+    const cfg = degreesModule.levels[0].config as ExerciseConfig;
+    const q = generateQuestion(cfg, { ...ctx(), cadenceOverride: 'note' });
+    expect(q.context?.style).toBe('note');
+    expect(q.context?.label).toBe('do');
+    expect(q.context?.sounds).toHaveLength(1);
+    expect(q.hasContext).toBe(true);
+    // the do precedes the target in the full plan
+    expect(planLength(q.fullPlan)).toBeGreaterThan(planLength(q.targetPlan));
+  });
+  it('does not add context to levels that have none', () => {
+    const cfg = melodyModule.levels[9].config as ExerciseConfig; // absolute mode, no cadence
+    const q = generateQuestion(cfg, { ...ctx(), cadenceOverride: 'full' });
+    expect(q.hasContext).toBe(false);
+    expect(q.context).toBeUndefined();
+  });
+  it('labels the full cadence with roman numerals and time spans', () => {
+    const cfg = harmonyModule.levels[3].config as ExerciseConfig; // minor
+    const q = generateQuestion(cfg, ctx());
+    expect(q.context?.label).toBe('i – iv – V – i');
+    const sounds = q.context!.sounds;
+    for (let i = 1; i < sounds.length; i++) expect(sounds[i].start).toBeCloseTo(sounds[i - 1].end);
+  });
+});

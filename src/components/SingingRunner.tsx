@@ -4,7 +4,7 @@ import { mic, type PitchFrame } from '../audio/mic';
 import { useLabels } from '../hooks/useLabels';
 import type { SingingConfig } from '../singing/types';
 import { useStore } from '../store/useStore';
-import { cadenceChords } from '../theory/cadence';
+import { cadenceChords, cadenceLabels, type CadenceStyle } from '../theory/cadence';
 import { intervalDef } from '../theory/intervals';
 import { generateMelody } from '../theory/melody';
 import { clampMidi, keyName, midiToName, type Mode } from '../theory/notes';
@@ -24,6 +24,8 @@ interface Step {
 
 interface Round {
   title: string;
+  /** label of the key-establishing sounds, e.g. "I – IV – V – I" or "do" */
+  contextLabel?: string;
   /** playback before the steps (cadence, reference note, melody...) */
   intro: ReturnType<typeof sequencePlan>;
   steps: Step[];
@@ -107,7 +109,9 @@ export function SingingRunner({ moduleId, levelId, config, rounds, mode, passAcc
 
   const degLabel = useCallback((d: number, m: Mode) => labels.degree(d, m), [labels]);
 
+  const keyContext = settings.keyContext;
   const buildRound = useCallback((): Round => {
+    const eff = (style: CadenceStyle): CadenceStyle => (style === 'none' || keyContext === 'level' ? style : keyContext);
     switch (config.type) {
       case 'match': {
         const target = randInt(vocalLow, vocalHigh);
@@ -140,11 +144,13 @@ export function SingingRunner({ moduleId, levelId, config, rounds, mode, passAcc
         const m: Mode = config.mode === 'both' ? (chance(0.5) ? 'major' : 'minor') : config.mode;
         const tonic = randInt(53, 64);
         const degree = pickWeighted(config.degrees, (d) => `sing:deg:${m}:${d}`);
-        const cad = cadenceChords(tonic, m, config.cadence);
+        const style = eff(config.cadence);
+        const cad = cadenceChords(tonic, m, style);
         const intro = concatPlans(sequencePlan(cad.map((c) => ({ notes: c.notes, duration: c.duration, velocity: 0.7 }))), silence(0.2));
         const target = clampMidi(tonic + degree, vocalLow, vocalHigh);
         return {
           title: `Sing ${degLabel(degree, m)}`,
+          contextLabel: cadenceLabels(m, style).join(' – '),
           intro,
           replay: intro,
           steps: [{ target, octaveFree: true, label: degLabel(degree, m), itemId: `sing:deg:${m}:${degree}` }],
@@ -171,12 +177,14 @@ export function SingingRunner({ moduleId, levelId, config, rounds, mode, passAcc
         const tonic = randInt(vocalLow + 2, Math.max(vocalLow + 2, vocalHigh - 9));
         const len = randInt(config.length[0], config.length[1]);
         const melody = generateMelody({ tonic, mode: m, degrees: config.degrees, length: len, low: vocalLow, high: vocalHigh, maxLeap: config.maxLeap, startOnTonic: chance(0.6), endStable: true, rhythm: 'even' });
-        const cad = cadenceChords(tonic, m, config.cadence);
+        const style = eff(config.cadence);
+        const cad = cadenceChords(tonic, m, style);
         const cadPlan = sequencePlan(cad.map((c) => ({ notes: c.notes, duration: c.duration, velocity: 0.65 })));
         const mel = sequencePlan(melody.map((n) => ({ notes: [n.midi], duration: 0.7, velocity: 0.85 })));
         const intro = concatPlans(cadPlan, silence(0.2), mel, silence(0.2));
         return {
           title: `Echo the ${len}-note melody`,
+          contextLabel: cadenceLabels(m, style).join(' – '),
           intro,
           replay: mel,
           steps: melody.map((n) => ({ target: n.midi, octaveFree: false, label: degLabel(n.degree, m), itemId: `sing:deg:${m}:${n.degree}` })),
@@ -185,7 +193,7 @@ export function SingingRunner({ moduleId, levelId, config, rounds, mode, passAcc
         };
       }
     }
-  }, [config, vocalLow, vocalHigh, degLabel]);
+  }, [config, vocalLow, vocalHigh, degLabel, keyContext]);
 
   function pickWeighted<T>(choices: T[], idFor: (c: T) => string): T {
     const srs = useStore.getState().srs;
@@ -462,6 +470,7 @@ export function SingingRunner({ moduleId, levelId, config, rounds, mode, passAcc
               round {roundIdx + 1} / {rounds}
             </span>
             {round.tonic != null && round.mode && <span className="badge">{keyName(round.tonic, round.mode)}</span>}
+            {round.contextLabel && <span className="badge" title="Key context">{round.contextLabel}</span>}
             {mic.state !== 'running' && <span className="badge bad">mic off</span>}
           </div>
           <div className="row">

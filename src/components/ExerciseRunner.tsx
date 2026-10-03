@@ -11,6 +11,8 @@ import { degreeOf, keyName, midiToName } from '../theory/notes';
 import { Piano } from './Piano';
 import { ChordQualityPad, DegreePad, FunctionPad, IntervalPad, type Mark } from './Pads';
 import { SequenceSlots } from './SequenceSlots';
+import { ReferenceDrawer } from './ChordReference';
+import type { KeyContext } from '../exercises/types';
 
 export interface RunSummary {
   questions: number;
@@ -58,6 +60,9 @@ export function ExerciseRunner({ moduleId, levelId, config, questionCount, mode,
   const [pianoSound, setPianoSound] = useState(mode === 'practice');
   const [isPlaying, setIsPlaying] = useState(false);
   const [stats, setStats] = useState({ correct: 0, positions: 0, positionsCorrect: 0 });
+  const [showRef, setShowRef] = useState(false);
+  const [playPos, setPlayPos] = useState(-1);
+  const playingFullRef = useRef(false);
 
   const handleRef = useRef<PlaybackHandle | null>(null);
   const timersRef = useRef<number[]>([]);
@@ -123,8 +128,20 @@ export function ExerciseRunner({ moduleId, levelId, config, questionCount, mode,
       const plan = full ? q.fullPlan : q.targetPlan;
       const handle = engine.play(plan, q.timbre);
       handleRef.current = handle;
+      playingFullRef.current = full;
       setIsPlaying(true);
-      handle.done.then(() => setIsPlaying(false));
+      let raf = 0;
+      const tick = () => {
+        if (handleRef.current !== handle) return;
+        setPlayPos(handle.position());
+        raf = requestAnimationFrame(tick);
+      };
+      if (full && q.context) raf = requestAnimationFrame(tick);
+      handle.done.then(() => {
+        cancelAnimationFrame(raf);
+        setIsPlaying(false);
+        setPlayPos(-1);
+      });
       return handle;
     },
     [],
@@ -133,7 +150,13 @@ export function ExerciseRunner({ moduleId, levelId, config, questionCount, mode,
   const startQuestion = useCallback(
     (idx: number) => {
       clearTimers();
-      const q = generateQuestion(config, { pickItem, index: idx, previous: prevKeyRef.current, defaultTimbre: settings.timbre });
+      const q = generateQuestion(config, {
+        pickItem,
+        index: idx,
+        previous: prevKeyRef.current,
+        defaultTimbre: settings.timbre,
+        cadenceOverride: settings.keyContext === 'level' ? undefined : settings.keyContext,
+      });
       prevKeyRef.current = { tonic: q.tonic, mode: q.mode };
       setQuestion(q);
       setResponse(Array(q.answer.length).fill(null));
@@ -148,7 +171,7 @@ export function ExerciseRunner({ moduleId, levelId, config, questionCount, mode,
         setPhase('answering');
       });
     },
-    [config, pickItem, play, settings.timbre],
+    [config, pickItem, play, settings.timbre, settings.keyContext],
   );
 
   const begin = useCallback(async () => {
@@ -315,6 +338,10 @@ export function ExerciseRunner({ moduleId, levelId, config, questionCount, mode,
   // Keyboard shortcuts: space = replay, enter = next / check, r = target only
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowRef(false);
+        return;
+      }
       const target = e.target as HTMLElement | null;
       if (target && ['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target.tagName) && e.key !== 'Enter') return;
       if (e.key === ' ') {
@@ -409,6 +436,7 @@ export function ExerciseRunner({ moduleId, levelId, config, questionCount, mode,
               {Number.isFinite(total) ? `${index + 1} / ${total}` : `#${index + 1}`}
             </span>
             {settings.showKeyName && question.hasContext && <span className="badge">{keyName(question.tonic, question.mode)}</span>}
+            {question.context && <CadenceLabel context={question.context} position={playingFullRef.current ? playPos : -1} />}
             {!question.hasContext && question.kind !== 'intervals' && question.kind !== 'chords' && <span className="badge warn">{question.mode} · no cadence</span>}
             {isPlaying && (
               <span className="playing-indicator" aria-label="playing">
@@ -431,7 +459,7 @@ export function ExerciseRunner({ moduleId, levelId, config, questionCount, mode,
         <div className="prompt">{question.prompt}</div>
         <div className="row mt">
           <button className="btn small" onClick={() => replay(true)} disabled={phase === 'playing' || (replaysLeft != null && replaysLeft <= 0 && phase === 'answering')}>
-            ↻ Replay {question.hasContext ? 'with cadence' : ''}
+            ↻ Replay {question.hasContext ? (question.context?.style === 'note' ? 'with do' : question.context?.style === 'tonic' ? 'with tonic chord' : 'with cadence') : ''}
           </button>
           {question.hasContext && (
             <button className="btn small ghost" onClick={() => replay(false)} disabled={phase === 'playing' || (replaysLeft != null && replaysLeft <= 0 && phase === 'answering')}>
@@ -440,6 +468,9 @@ export function ExerciseRunner({ moduleId, levelId, config, questionCount, mode,
           )}
           {replaysLeft != null && phase !== 'feedback' && <span className="badge">{replaysLeft} replays left</span>}
           <span className="spacer" />
+          <button className="btn small ghost" onClick={() => setShowRef(true)} title="Chord & scale reference">
+            📖 Reference
+          </button>
           {canUsePiano && question.input.kind === 'degree' && (
             <button className="btn small ghost" onClick={() => setUsePiano((v) => !v)}>
               {usePiano ? 'Use degree buttons' : 'Use piano'}
@@ -500,6 +531,8 @@ export function ExerciseRunner({ moduleId, levelId, config, questionCount, mode,
         ) : null}
       </div>
 
+      <ReferenceDrawer open={showRef} onClose={() => setShowRef(false)} tonic={question.tonic} mode={question.mode} />
+
       {phase === 'feedback' && result && (
         <div className={`feedback ${result.correct ? 'good' : 'bad'}`}>
           <div className="row between">
@@ -524,6 +557,21 @@ export function ExerciseRunner({ moduleId, levelId, config, questionCount, mode,
         </div>
       )}
     </div>
+  );
+}
+
+/** Shows the key-establishing progression, highlighting the sound currently playing. */
+export function CadenceLabel({ context, position }: { context: KeyContext; position: number }) {
+  const active = position >= 0 ? context.sounds.findIndex((c) => position >= c.start && position < c.end) : -1;
+  return (
+    <span className="cadence-label" title={`Key context: ${context.label}`}>
+      {context.sounds.map((c, i) => (
+        <span key={i} style={{ display: 'contents' }}>
+          {i > 0 && <span className="sep">–</span>}
+          <span className={`sound ${i === active ? 'active' : ''}`}>{c.label}</span>
+        </span>
+      ))}
+    </span>
   );
 }
 

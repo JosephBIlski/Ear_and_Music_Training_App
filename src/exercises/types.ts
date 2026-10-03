@@ -23,6 +23,8 @@ export interface Question {
   targetPlan: PlaybackPlan;
   /** Whether the full plan contains a cadence (affects UI labels) */
   hasContext: boolean;
+  /** What establishes the key before the target: labelled sounds with their time spans in fullPlan */
+  context?: KeyContext;
   tonic: number;
   mode: Mode;
   timbre: Timbre;
@@ -37,6 +39,13 @@ export interface Question {
   feedbackPlan?: PlaybackPlan;
   /** Replay budget for transcription levels (undefined = unlimited) */
   maxReplays?: number;
+}
+
+export interface KeyContext {
+  style: CadenceStyle;
+  /** e.g. "I – IV – V – I" */
+  label: string;
+  sounds: { label: string; start: number; end: number }[];
 }
 
 export interface AnswerResult {
@@ -149,4 +158,6 @@ export interface GeneratorContext {
   /** tonic/mode used by the previous question in the run (to keep key when cadence is skipped) */
   previous?: { tonic: number; mode: Mode };
   defaultTimbre: Timbre;
+  /** user preference replacing the level's cadence (never applied to levels with no key context) */
+  cadenceOverride?: CadenceStyle;
 }

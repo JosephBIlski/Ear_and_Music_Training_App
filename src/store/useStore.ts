@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Timbre } from '../audio/engine';
 import type { LabelStyle, MinorLabelling } from '../theory/notes';
+import type { CadenceStyle } from '../theory/cadence';
 import { newItem, updateItem, type SrsItem } from '../srs/scheduler';
 
 export interface Settings {
@@ -18,6 +19,8 @@ export interface Settings {
   autoAdvanceMs: number;
   /** play the Benbassat resolution on feedback */
   playResolution: boolean;
+  /** how the key is established before a question: the level's cadence, or a replacement */
+  keyContext: 'level' | Extract<CadenceStyle, 'full' | 'short' | 'tonic' | 'note'>;
   /** show key name during questions */
   showKeyName: boolean;
   useMidi: boolean;
@@ -110,6 +113,7 @@ export const DEFAULT_SETTINGS: Settings = {
   vocalHigh: 67,
   autoAdvanceMs: 1800,
   playResolution: true,
+  keyContext: 'level',
   showKeyName: true,
   useMidi: false,
   micSensitivity: 0.01,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildChord, chordFunction, pianoVoicing, voiceChord, functionsFor } from './chords';
-import { cadenceChords } from './cadence';
+import { cadenceChords, cadenceLabels } from './cadence';
 import { generateProgression } from './progression';
 import { setRandomSource, seeded, resetRandomSource } from './random';
 
@@ -53,5 +53,23 @@ describe('progression', () => {
       expect(p[0].id).toBe('I');
     }
     resetRandomSource();
+  });
+});
+
+describe('cadence styles and labels', () => {
+  it('single do note style plays only the tonic', () => {
+    const c = cadenceChords(62, 'major', 'note');
+    expect(c).toHaveLength(1);
+    expect(c[0].notes).toEqual([62]);
+  });
+  it('labels match the sounds of each style', () => {
+    expect(cadenceLabels('major', 'full')).toEqual(['I', 'IV', 'V', 'I']);
+    expect(cadenceLabels('minor', 'full')).toEqual(['i', 'iv', 'V', 'i']);
+    expect(cadenceLabels('minor', 'short')).toEqual(['i', 'V', 'i']);
+    expect(cadenceLabels('major', 'note')).toEqual(['do']);
+    expect(cadenceLabels('major', 'none')).toEqual([]);
+    for (const style of ['full', 'short', 'tonic', 'note'] as const) {
+      expect(cadenceChords(60, 'major', style)).toHaveLength(cadenceLabels('major', style).length);
+    }
   });
 });

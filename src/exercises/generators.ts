@@ -1,5 +1,5 @@
 import { concatPlans, sequencePlan, silence, type PlaybackPlan, type Timbre, mergePlans, shiftPlan } from '../audio/engine';
-import { cadenceChords, type CadenceStyle } from '../theory/cadence';
+import { cadenceChords, cadenceLabels, type CadenceStyle } from '../theory/cadence';
 import { buildChord, chordFunction, inversionCount, pianoVoicing, voiceChord } from '../theory/chords';
 import { intervalDef, type IntervalDirection } from '../theory/intervals';
 import { generateMelody, randomTempo } from '../theory/melody';
@@ -13,6 +13,7 @@ import type {
   GeneratorContext,
   HarmonyConfig,
   IntervalsConfig,
+  KeyContext,
   MelodyConfig,
   ProgressionConfig,
   Question,
@@ -35,10 +36,24 @@ function chooseTimbre(list: Timbre[] | undefined, fallback: Timbre): Timbre {
   return list && list.length ? pick(list) : fallback;
 }
 
-function cadencePlan(tonic: number, mode: Mode, style: CadenceStyle): PlaybackPlan {
+/** The level's cadence style, replaced by the user's preference unless the level has none. */
+function effectiveCadence(cfg: CadenceStyle, ctx: GeneratorContext): CadenceStyle {
+  if (cfg === 'none') return 'none';
+  return ctx.cadenceOverride ?? cfg;
+}
+
+function cadencePlan(tonic: number, mode: Mode, style: CadenceStyle): { plan: PlaybackPlan; context?: KeyContext } {
   const chords = cadenceChords(tonic, mode, style);
-  if (!chords.length) return silence(0);
-  return concatPlans(sequencePlan(chords.map((c) => ({ notes: c.notes, duration: c.duration, velocity: 0.7 }))), silence(0.35));
+  if (!chords.length) return { plan: silence(0) };
+  const labels = cadenceLabels(mode, style);
+  const sounds: KeyContext['sounds'] = [];
+  let t = 0;
+  chords.forEach((c, i) => {
+    sounds.push({ label: labels[i] ?? '', start: t, end: t + c.duration });
+    t += c.duration;
+  });
+  const plan = concatPlans(sequencePlan(chords.map((c) => ({ notes: c.notes, duration: c.duration, velocity: 0.7 }))), silence(0.35));
+  return { plan, context: { style, label: labels.join(' – '), sounds } };
 }
 
 export const itemIds = {
@@ -83,7 +98,9 @@ export function generateDegrees(cfg: DegreesConfig, ctx: GeneratorContext): Ques
 
   const noteDur = cfg.notesPerQuestion > 1 ? 0.75 : 1.1;
   const targetPlan = sequencePlan(targets.map((m) => ({ notes: [m], duration: noteDur, velocity: 0.9 })));
-  const fullPlan = cadenceNow ? concatPlans(cadencePlan(tonic, mode, cfg.cadence), targetPlan) : targetPlan;
+  const cadStyle = effectiveCadence(cfg.cadence, ctx);
+  const cad = cadenceNow ? cadencePlan(tonic, mode, cadStyle) : { plan: silence(0) };
+  const fullPlan = cadenceNow ? concatPlans(cad.plan, targetPlan) : targetPlan;
 
   let feedbackPlan: PlaybackPlan | undefined;
   if (cfg.resolution) {
@@ -99,7 +116,8 @@ export function generateDegrees(cfg: DegreesConfig, ctx: GeneratorContext): Ques
     itemIds: ids,
     fullPlan,
     targetPlan,
-    hasContext: cadenceNow && cfg.cadence !== 'none',
+    hasContext: cadenceNow && cadStyle !== 'none',
+    context: cad.context,
     tonic,
     mode,
     timbre,
@@ -221,17 +239,21 @@ export function generateHarmony(cfg: HarmonyConfig, ctx: GeneratorContext): Ques
   const fn = chordFunction(fid);
   const allowedInv = cfg.inversions.filter((i) => i < inversionCount(fn.type));
   const inversion = allowedInv.length ? pick(allowedInv) : 0;
-  const cad = cadenceChords(tonic, mode, cfg.cadence);
-  const prev = cad.length ? cad[cad.length - 1].notes.slice(1) : undefined;
+  const cadStyle = effectiveCadence(cfg.cadence, ctx);
+  const cadChords = cadenceChords(tonic, mode, cadStyle);
+  const last = cadChords.length ? cadChords[cadChords.length - 1].notes : [];
+  const prev = last.length > 1 ? last.slice(1) : undefined;
   const notes = pianoVoicing(tonic + fn.rootDegree, fn.type, inversion, prev);
   const targetPlan = sequencePlan([{ notes, duration: 1.8, velocity: 0.85 }]);
-  const fullPlan = concatPlans(cadencePlan(tonic, mode, cfg.cadence), targetPlan);
+  const cad = cadencePlan(tonic, mode, cadStyle);
+  const fullPlan = concatPlans(cad.plan, targetPlan);
   return {
     kind: 'harmony',
     itemIds: [id],
     fullPlan,
     targetPlan,
-    hasContext: cfg.cadence !== 'none',
+    hasContext: cadStyle !== 'none',
+    context: cad.context,
     tonic,
     mode,
     timbre,
@@ -289,7 +311,9 @@ export function generateMelodyQuestion(cfg: MelodyConfig, ctx: GeneratorContext)
   if (cfg.accompaniment) {
     targetPlan = mergePlans(melodyPlan, accompanimentFor(tonic, mode, totalBeats, beat));
   }
-  const fullPlan = cfg.absolute ? targetPlan : concatPlans(cadencePlan(tonic, mode, cfg.cadence), targetPlan);
+  const cadStyle = cfg.absolute ? 'none' : effectiveCadence(cfg.cadence, ctx);
+  const cad = cadencePlan(tonic, mode, cadStyle);
+  const fullPlan = cfg.absolute ? targetPlan : concatPlans(cad.plan, targetPlan);
   const ids = melody.map((n) => itemIds.degree(mode, n.degree));
   const answer = cfg.absolute ? melody.map((n) => String(n.midi)) : melody.map((n) => String(n.degree));
   return {
@@ -297,7 +321,8 @@ export function generateMelodyQuestion(cfg: MelodyConfig, ctx: GeneratorContext)
     itemIds: ids,
     fullPlan,
     targetPlan,
-    hasContext: !cfg.absolute && cfg.cadence !== 'none',
+    hasContext: cadStyle !== 'none',
+    context: cad.context,
     tonic,
     mode,
     timbre,
@@ -347,13 +372,16 @@ export function generateProgressionQuestion(cfg: ProgressionConfig, ctx: Generat
     }
     targetPlan = mergePlans(targetPlan, { events, length: targetPlan.length });
   }
-  const fullPlan = concatPlans(cadencePlan(tonic, mode, cfg.cadence), shiftPlan(targetPlan, 0));
+  const cadStyle = effectiveCadence(cfg.cadence, ctx);
+  const cad = cadencePlan(tonic, mode, cadStyle);
+  const fullPlan = concatPlans(cad.plan, shiftPlan(targetPlan, 0));
   return {
     kind: 'progression',
     itemIds: prog.map((f) => itemIds.chordFunction(mode, f.id)),
     fullPlan,
     targetPlan,
-    hasContext: cfg.cadence !== 'none',
+    hasContext: cadStyle !== 'none',
+    context: cad.context,
     tonic,
     mode,
     timbre,

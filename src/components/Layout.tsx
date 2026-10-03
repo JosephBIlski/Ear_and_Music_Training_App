@@ -17,6 +17,9 @@ export function Layout() {
         <NavLink to="/stats" className={cls}>
           Progress
         </NavLink>
+        <NavLink to="/reference" className={cls}>
+          Reference
+        </NavLink>
         <NavLink to="/guide" className={cls}>
           Guide
         </NavLink>

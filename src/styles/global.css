@@ -266,3 +266,25 @@ ul.tips li { margin-bottom: 0.3rem; }
 .sync-status .dot.err { background: var(--bad); }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 .install-banner { display: flex; gap: 0.7rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+
+/* --- Reference panel & drawer ------------------------------------------------- */
+.ref-table { font-size: 0.85rem; }
+.ref-table th { color: var(--text-dim); font-weight: 600; white-space: nowrap; }
+.ref-table td, .ref-table th { padding: 0.3rem 0.4rem; vertical-align: middle; }
+.ref-table .center { text-align: center; }
+.tiny-chip { padding: 0.15rem 0.45rem; font-size: 0.8rem; }
+.reference.compact .ref-table { font-size: 0.8rem; }
+.reference.compact h3 { font-size: 0.95rem; }
+.reference table { display: block; overflow-x: auto; max-width: 100%; }
+.drawer-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 40; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw); z-index: 41; overflow-y: auto;
+  background: var(--bg-elev); border-left: 1px solid var(--border); padding: 1rem; box-shadow: var(--shadow);
+  padding-top: calc(1rem + env(safe-area-inset-top)); padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+/* --- Cadence label -------------------------------------------------------------- */
+.cadence-label { display: inline-flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+.cadence-label .sound { padding: 0.05rem 0.45rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.78rem; font-weight: 600; color: var(--text-dim); transition: background 0.1s, color 0.1s; font-variant-numeric: tabular-nums; }
+.cadence-label .sound.active { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+.cadence-label .sep { color: var(--text-dim); font-size: 0.75rem; }

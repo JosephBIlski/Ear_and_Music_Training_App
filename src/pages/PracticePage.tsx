@@ -11,6 +11,7 @@ import { currentLevelIndex, useStore } from '../store/useStore';
 import { CHORD_FUNCTIONS, CHORD_TYPES, INVERSION_NAMES } from '../theory/chords';
 import { INTERVALS } from '../theory/intervals';
 import type { Mode } from '../theory/notes';
+import type { CadenceStyle } from '../theory/cadence';
 
 const COUNTS = [10, 20, 40, Infinity];
 
@@ -102,10 +103,11 @@ export function PracticePage() {
               </label>
               <label className="field">
                 <span>Cadence</span>
-                <select value={config.cadence} onChange={(e) => patch({ cadence: e.target.value as 'full' | 'short' | 'tonic' | 'none' })}>
+                <select value={config.cadence} onChange={(e) => patch({ cadence: e.target.value as CadenceStyle })}>
                   <option value="full">I–IV–V–I</option>
                   <option value="short">I–V–I</option>
                   <option value="tonic">tonic chord</option>
+                  <option value="note">single do note</option>
                   <option value="none">none</option>
                 </select>
               </label>
@@ -185,10 +187,11 @@ export function PracticePage() {
               </label>
               <label className="field">
                 <span>Cadence</span>
-                <select value={config.cadence} onChange={(e) => patch({ cadence: e.target.value as 'full' | 'short' | 'tonic' | 'none' })}>
+                <select value={config.cadence} onChange={(e) => patch({ cadence: e.target.value as CadenceStyle })}>
                   <option value="full">I–IV–V–I</option>
                   <option value="short">I–V–I</option>
                   <option value="tonic">tonic chord</option>
+                  <option value="note">single do note</option>
                 </select>
               </label>
               {config.kind === 'progression' && (
@@ -255,10 +258,11 @@ export function PracticePage() {
               </label>
               <label className="field">
                 <span>Cadence</span>
-                <select value={config.cadence} onChange={(e) => patch({ cadence: e.target.value as 'full' | 'short' | 'tonic' | 'none' })}>
+                <select value={config.cadence} onChange={(e) => patch({ cadence: e.target.value as CadenceStyle })}>
                   <option value="full">I–IV–V–I</option>
                   <option value="short">I–V–I</option>
                   <option value="tonic">tonic chord</option>
+                  <option value="note">single do note</option>
                   <option value="none">none</option>
                 </select>
               </label>

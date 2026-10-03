@@ -8,6 +8,7 @@ import { ModulePage } from './pages/ModulePage';
 import { PracticePage } from './pages/PracticePage';
 import { SettingsPage } from './pages/SettingsPage';
 import { StatsPage } from './pages/StatsPage';
+import { ReferencePage } from './pages/ReferencePage';
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/train/:moduleId/:levelId" element={<LevelPage />} />
           <Route path="/practice/:moduleId" element={<PracticePage />} />
           <Route path="/stats" element={<StatsPage />} />
+          <Route path="/reference" element={<ReferencePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/guide" element={<GuidePage />} />
           <Route path="*" element={<Dashboard />} />

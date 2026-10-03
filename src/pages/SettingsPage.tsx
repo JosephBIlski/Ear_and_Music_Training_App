@@ -115,6 +115,17 @@ export function SettingsPage() {
         <label className="check">
           <input type="checkbox" checked={settings.playResolution} onChange={(e) => update({ playResolution: e.target.checked })} /> Play the note's resolution to do after answering (Benbassat method)
         </label>
+        <label className="field">
+          <span>Key context before each question</span>
+          <select value={settings.keyContext} onChange={(e) => update({ keyContext: e.target.value as typeof settings.keyContext })}>
+            <option value="level">As set by the level (usually the I–IV–V–I cadence)</option>
+            <option value="full">Always the full I–IV–V–I cadence</option>
+            <option value="short">Short I–V–I cadence</option>
+            <option value="tonic">Tonic chord only</option>
+            <option value="note">Just the do note</option>
+          </select>
+          <span className="tiny muted">Replaces the cadence in degree, chord-function, transcription and singing questions. Levels that deliberately give no key context are unaffected. The progression being played is shown next to the key name.</span>
+        </label>
       </div>
 
       <div className="card stack">
