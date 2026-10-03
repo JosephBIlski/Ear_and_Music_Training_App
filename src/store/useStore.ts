@@ -211,7 +211,16 @@ export const useStore = create<State>()(
         }
       },
     }),
-    { name: 'ear-trainer-v1', version: 1 },
+    {
+      name: 'ear-trainer-v1',
+      version: 1,
+      // Deep-merge persisted settings with defaults so settings added in later
+      // versions get their default value instead of undefined.
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<State>;
+        return { ...current, ...p, settings: { ...DEFAULT_SETTINGS, ...(p.settings ?? {}) } };
+      },
+    },
   ),
 );
 

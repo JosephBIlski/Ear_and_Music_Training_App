@@ -108,8 +108,9 @@ export function SettingsPage() {
           <input type="range" min={0} max={1} step={0.05} value={settings.volume} onChange={(e) => update({ volume: Number(e.target.value) })} onMouseUp={() => preview(settings.timbre)} />
         </label>
         <label className="field">
-          <span>Auto-advance after feedback: {settings.autoAdvanceMs === 0 ? 'off (press Enter)' : `${settings.autoAdvanceMs / 1000}s`}</span>
+          <span>Auto-advance to the next question: {settings.autoAdvanceMs === 0 ? 'off – you press Next / Enter' : `after ${settings.autoAdvanceMs / 1000}s`}</span>
           <input type="range" min={0} max={4000} step={200} value={settings.autoAdvanceMs} onChange={(e) => update({ autoAdvanceMs: Number(e.target.value) })} />
+          <span className="tiny muted">Applies to recognition and transcription questions and to singing rounds. A Next button is always available.</span>
         </label>
         <label className="check">
           <input type="checkbox" checked={settings.playResolution} onChange={(e) => update({ playResolution: e.target.checked })} /> Play the note's resolution to do after answering (Benbassat method)

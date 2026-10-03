@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { degreeLabel, solfege, solfegeLaBased, degreeNumber, type Mode } from '../theory/notes';
 import { chordFunction, chordType, INVERSION_NAMES } from '../theory/chords';
@@ -52,5 +52,5 @@ export function useLabels() {
     [degree, interval, quality, fn],
   );
 
-  return { degree, degreeParts, interval, quality, fn, token };
+  return useMemo(() => ({ degree, degreeParts, interval, quality, fn, token }), [degree, degreeParts, interval, quality, fn, token]);
 }

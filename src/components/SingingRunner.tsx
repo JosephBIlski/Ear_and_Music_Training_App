@@ -283,7 +283,8 @@ export function SingingRunner({ moduleId, levelId, config, rounds, mode, passAcc
     (passed: boolean) => {
       const r = round;
       const step = stepRef.current;
-      if (!r || !step) return;
+      if (!r || !step || phaseRef.current !== 'singing') return;
+      phaseRef.current = 'step-done';
       clearTimers();
       const cents = centsAccRef.current;
       const avgAbs = cents.length ? cents.reduce((a, c) => a + Math.abs(c), 0) / cents.length : 0;
@@ -312,7 +313,7 @@ export function SingingRunner({ moduleId, levelId, config, rounds, mode, passAcc
   // mic frames
   useEffect(() => {
     return mic.subscribe((f) => {
-      setFrame(f);
+      if (phaseRef.current === 'singing' || phaseRef.current === 'step-done') setFrame(f);
       if (phaseRef.current !== 'singing' || !stepRef.current) return;
       if (f.time < listenFromRef.current) return;
       const step = stepRef.current;
@@ -369,11 +370,16 @@ export function SingingRunner({ moduleId, levelId, config, rounds, mode, passAcc
     else startRound(n);
   }, [roundIdx, rounds, finish, totals, startRound]);
 
+  // Auto-advance between rounds. The timer must not depend on callback identity
+  // (the component re-renders on every microphone frame), hence the ref.
+  const nextRoundRef = useRef(nextRound);
+  nextRoundRef.current = nextRound;
+  const autoAdvanceMs = settings.autoAdvanceMs;
   useEffect(() => {
-    if (phase !== 'round-done') return;
-    const t = window.setTimeout(nextRound, 900);
+    if (phase !== 'round-done' || autoAdvanceMs === 0) return;
+    const t = window.setTimeout(() => nextRoundRef.current(), Math.max(700, autoAdvanceMs));
     return () => window.clearTimeout(t);
-  }, [phase, nextRound]);
+  }, [phase, autoAdvanceMs]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -383,6 +389,9 @@ export function SingingRunner({ moduleId, levelId, config, rounds, mode, passAcc
       } else if (e.key === ' ' && round?.replay && (phase === 'singing' || phase === 'intro')) {
         e.preventDefault();
         playPlan(round.replay);
+      } else if (e.key === 'Enter' && phase === 'round-done') {
+        e.preventDefault();
+        nextRoundRef.current();
       }
     };
     window.addEventListener('keydown', handler);
@@ -494,6 +503,18 @@ export function SingingRunner({ moduleId, levelId, config, rounds, mode, passAcc
         {phase === 'intro' ? (
           <div className="center muted" style={{ padding: '1.5rem 0' }}>
             Listen…
+          </div>
+        ) : phase === 'round-done' ? (
+          <div className={`feedback ${stepResults.every(Boolean) ? 'good' : 'bad'}`}>
+            <div className="row between">
+              <div>
+                <div className="big">{stepResults.every(Boolean) ? 'Round complete' : `${stepResults.filter(Boolean).length} / ${stepResults.length} notes hit`}</div>
+                <div className="muted small">{autoAdvanceMs === 0 ? 'Auto-advance is off – press Next when ready.' : 'Moving on automatically…'}</div>
+              </div>
+              <button className="btn primary" onClick={() => nextRoundRef.current()}>
+                {roundIdx + 1 >= rounds ? 'Finish' : 'Next round'} <span className="kbd">Enter</span>
+              </button>
+            </div>
           </div>
         ) : (
           <>
